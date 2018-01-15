@@ -30,8 +30,9 @@ CONFIGURE_FILE(
 	"${MRPT_SOURCE_DIR}/parse-files/MRPTConfig.cmake.in"
     "${MRPT_BINARY_DIR}/MRPTConfig.cmake" @ONLY IMMEDIATE )
 #support for version checking when finding MRPT, e.g. find_package(MRPT 1.0.0 EXACT)
+SET(PKG_NAME "MRPT")
 CONFIGURE_FILE(
-	"${MRPT_SOURCE_DIR}/parse-files/MRPTConfig-version.cmake.in" 
+	"${MRPT_SOURCE_DIR}/parse-files/MRPTConfig-version.cmake.in"
 	"${CMAKE_BINARY_DIR}/MRPTConfig-version.cmake" IMMEDIATE @ONLY)
 
 # ----------------------------------------------------------------------------
@@ -62,9 +63,9 @@ ELSE(WIN32)
 ENDIF(WIN32)
 
 CONFIGURE_FILE(
-	"${MRPT_SOURCE_DIR}/parse-files/MRPTConfig.cmake.in"  
+	"${MRPT_SOURCE_DIR}/parse-files/MRPTConfig.cmake.in"
 	"${MRPT_BINARY_DIR}/unix-install/MRPTConfig.cmake" @ONLY IMMEDIATE )
 #support for version checking when finding MRPT, e.g. find_package(MRPT 1.0.0 EXACT)
 CONFIGURE_FILE(
-	"${MRPT_SOURCE_DIR}/parse-files/MRPTConfig-version.cmake.in" 
+	"${MRPT_SOURCE_DIR}/parse-files/MRPTConfig-version.cmake.in"
 	"${MRPT_BINARY_DIR}/unix-install/MRPTConfig-version.cmake" IMMEDIATE @ONLY)

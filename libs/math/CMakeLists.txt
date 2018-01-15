@@ -47,4 +47,10 @@ IF(BUILD_mrpt-math)
 	if (NOT "${SuiteSparse_LIBRARIES}" STREQUAL "")
 		target_link_libraries(mrpt-math PRIVATE ${SuiteSparse_LIBRARIES})
 	endif ()
+
+	# Special case: embedded eigen3 as dep of "mrpt-math"
+	IF (EIGEN_USE_EMBEDDED_VERSION)
+		add_dependencies(mrpt-math EP_eigen3)
+	ENDIF()
+
 ENDIF()

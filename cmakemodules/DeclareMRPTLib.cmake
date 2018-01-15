@@ -54,27 +54,27 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 	#
 	#  For code simplicity, let's use the same list, just adding the default sources there:
 	LIST(APPEND ${name}_EXTRA_SRCS
-		"${CMAKE_SOURCE_DIR}/libs/${name}/src/*.cpp"
-		"${CMAKE_SOURCE_DIR}/libs/${name}/src/*.c"
-		"${CMAKE_SOURCE_DIR}/libs/${name}/src/*.cxx"
-		"${CMAKE_SOURCE_DIR}/libs/${name}/src/*.h"
-		"${CMAKE_SOURCE_DIR}/libs/${name}/include/mrpt/${name}/*.h"
-		"${CMAKE_SOURCE_DIR}/libs/${name}/include/mrpt/${name}/*.hpp"
-		"${CMAKE_SOURCE_DIR}/doc/doxygen-pages/lib_mrpt_${name}.h"
+		"src/*.cpp"
+		"src/*.c"
+		"src/*.cxx"
+#		"src/*.h"
+#		"include/mrpt/${name}/*.h"
+#		"include/mrpt/${name}/*.hpp"
+#		"${CMAKE_SOURCE_DIR}/doc/doxygen-pages/lib_mrpt_${name}.h"
 		)
 	LIST(APPEND ${name}_EXTRA_SRCS_NAME
 		"${name}"
 		"${name}"
 		"${name}"
-		"${name} Internal Headers"
-		"${name} Public Headers"
-		"${name} Public Headers"
-		"Documentation"
+#		"${name} Internal Headers"
+#		"${name} Public Headers"
+#		"${name} Public Headers"
+#		"Documentation"
 		)
 	# Only add these ones for "normal" libraries:
 	IF (NOT ${headers_only})
 		LIST(APPEND ${name}_EXTRA_SRCS
-			"${CMAKE_SOURCE_DIR}/libs/${name}/src/registerAllClasses.cpp"
+			"src/registerAllClasses.cpp"
 			)
 		LIST(APPEND ${name}_EXTRA_SRCS_NAME
 			"Class register"
@@ -134,8 +134,8 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 	set(all_${name}_srcs  ${${name}_srcs})
 
 	# Add main lib header (may not exist in meta-libs only):
-	IF (EXISTS "${CMAKE_SOURCE_DIR}/libs/${name}/include/mrpt/${name}.h")
-		set(all_${name}_srcs ${all_${name}_srcs} "${CMAKE_SOURCE_DIR}/libs/${name}/include/mrpt/${name}.h")
+	IF (EXISTS "include/mrpt/${name}.h")
+		set(all_${name}_srcs ${all_${name}_srcs} "include/mrpt/${name}.h")
 	ENDIF ()
 
 	IF (NOT ${headers_only})
@@ -147,7 +147,7 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 
 		# private include dirs for this lib:
 		target_include_directories(mrpt-${name} PRIVATE
-				"${CMAKE_SOURCE_DIR}/libs/${name}/src/" # To include ${name}-precomp.h
+				$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/${name}/src/> # To include ${name}-precomp.h
 			)
 		if(MSVC)  # Define math constants if built with MSVC
 			target_compile_definitions(mrpt-${name} PUBLIC _USE_MATH_DEFINES)
@@ -166,7 +166,7 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 	target_include_directories(mrpt-${name} ${iftype}
 		$<BUILD_INTERFACE:${MRPT_SOURCE_DIR}/libs/${name}/include>
 		$<INSTALL_INTERFACE:${name}/include>
-	)
+)
 
 	add_dependencies(all_mrpt_libs mrpt-${name}) # for target: all_mrpt_libs
 
@@ -214,16 +214,12 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 	ADD_DEPENDENCIES(mrpt-${name} "DocumentationFiles")  # docs files target (useful for IDE editing)
 
 	IF (NOT ${headers_only})
+		# TODO: Remove this and use finer, per project, linked libs!
 		TARGET_LINK_LIBRARIES(mrpt-${name}
 			PRIVATE
 			${MRPTLIB_LINKER_LIBS}
 			)
 	ENDIF ()
-
-	# Special case: embedded eigen3 as dep of "mrpt-math"
-	IF (EIGEN_USE_EMBEDDED_VERSION AND ${name} STREQUAL "math")
-		add_dependencies(mrpt-${name} EP_eigen3)
-	ENDIF()
 
 	# Set custom name of lib + dynamic link numbering convenions in Linux:
 	IF (NOT ${headers_only})
@@ -282,7 +278,7 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 			ENDIF()
 
 			SOURCE_GROUP("Precompiled headers" FILES
-				"${CMAKE_SOURCE_DIR}/libs/${name}/src/${name}-precomp.cpp"
+				"src/${name}-precomp.cpp"
 				"${CMAKE_SOURCE_DIR}/libs/${name}/src/${name}-precomp.h"
 				)
 		ENDIF(MRPT_ENABLE_PRECOMPILED_HDRS)
@@ -308,7 +304,7 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 
 		# make sure the library gets installed
 		IF (NOT is_metalib)
-			INSTALL(TARGETS mrpt-${name}
+			INSTALL(TARGETS mrpt-${name} EXPORT mrpt-${name}-targets
 				RUNTIME DESTINATION ${MRPT_PREFIX_INSTALL}bin  COMPONENT Libraries
 				LIBRARY DESTINATION ${MRPT_PREFIX_INSTALL}${CMAKE_INSTALL_LIBDIR} COMPONENT Libraries
 				ARCHIVE DESTINATION ${MRPT_PREFIX_INSTALL}${CMAKE_INSTALL_LIBDIR} COMPONENT Libraries  # WAS: lib${LIB_SUFFIX}
@@ -323,6 +319,9 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 				ENDIF ()
 			ENDIF(MSVC)
 		ENDIF (NOT is_metalib)
+	ELSE() # it IS headers_only:
+		INSTALL(TARGETS mrpt-${name} EXPORT mrpt-${name}-targets)
+
 	ENDIF (NOT ${headers_only})
 
 	# Generate the libmrpt-$NAME.pc file for pkg-config:
@@ -341,10 +340,11 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 
 		# Special case: For mrpt-math, mark "eigen3" as a pkg-config dependency only
 		#  if we are instructed to do so: (EIGEN_USE_EMBEDDED_VERSION=OFF)
-		IF(NOT EIGEN_USE_EMBEDDED_VERSION)
+		IF(NOT EIGEN_USE_EMBEDDED_VERSION AND "${NAME}" STREQUAL "math")
 			SET(mrpt_pkgconfig_REQUIRES "${mrpt_pkgconfig_REQUIRES},eigen3")
-		ENDIF(NOT EIGEN_USE_EMBEDDED_VERSION)
+		ENDIF()
 
+		STRING(REPLACE "xxx" "${name}" this_lib_dev_INSTALL_PREFIX "${libmrpt_xxx_dev_INSTALL_PREFIX}")
 		# "Libs" lines in .pc files:
 		# -----------------------------------------------------------
 		# * for install, normal lib:
@@ -365,6 +365,22 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 			SET(mrpt_pkgconfig_libs_private_line "Libs.private: ${MRPTLIB_LINKER_LIBS}")
 		ENDIF (${headers_only})
 
+		# Create module CMake config file:
+		# For local usage:
+		export(TARGETS mrpt-${name} FILE "${CMAKE_BINARY_DIR}/mrpt-${name}-targets.cmake")
+		SET(LIB_NAME ${name})
+		configure_file(
+			"${MRPT_SOURCE_DIR}/parse-files/mrpt-xxx-config.cmake.in"
+			"${CMAKE_BINARY_DIR}/mrpt-${name}-config.cmake"
+			@ONLY
+		)
+		SET(LIB_NAME)
+
+		SET(PKG_NAME mrpt-${name})
+		CONFIGURE_FILE(
+			"${MRPT_SOURCE_DIR}/parse-files/MRPTConfig-version.cmake.in"
+			"${CMAKE_BINARY_DIR}/mrpt-${name}-config-version.cmake" IMMEDIATE @ONLY)
+
 		# (1/2) Generate the .pc file for "make install"
 		CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/parse-files/mrpt_template.pc.in" "${CMAKE_BINARY_DIR}/pkgconfig/mrpt-${name}.pc" @ONLY)
 
@@ -374,11 +390,14 @@ macro(internal_define_mrpt_lib name headers_only is_metalib)
 		CONFIGURE_FILE("${CMAKE_SOURCE_DIR}/parse-files/mrpt_template_no_install.pc.in" "${CMAKE_BINARY_DIR}/pkgconfig-no-install/mrpt-${name}.pc" @ONLY)
 
 		IF (NOT IS_DEBIAN_DBG_PKG)
-			STRING(REPLACE "xxx" "${name}" this_lib_dev_INSTALL_PREFIX "${libmrpt_xxx_dev_INSTALL_PREFIX}")
 			# .pc file:
 			INSTALL(
 				FILES "${CMAKE_BINARY_DIR}/pkgconfig/mrpt-${name}.pc"
 				DESTINATION ${this_lib_dev_INSTALL_PREFIX}${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+			# mrpt-xxx-config.cmake file:
+			INSTALL(EXPORT mrpt-${name}-targets DESTINATION ${this_lib_dev_INSTALL_PREFIX}share/mrpt)
+			INSTALL(FILES "${CMAKE_BINARY_DIR}/mrpt-${name}-config.cmake" DESTINATION ${libmrpt_dev_INSTALL_PREFIX}share/mrpt)
+			INSTALL(FILES "${CMAKE_BINARY_DIR}/mrpt-${name}-config-version.cmake" DESTINATION ${libmrpt_dev_INSTALL_PREFIX}share/mrpt)
 
 			# Install the headers of all the MRPT libs:
 			# (in win32 the /libs/* tree is install entirely, not only the headers):

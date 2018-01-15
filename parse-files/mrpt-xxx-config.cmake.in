@@ -1,0 +1,11 @@
+include(CMakeFindDependencyMacro)
+
+SET(_deps "@AUX_DEPS_LIST@")
+foreach(_dep "${_deps}")
+  MESSAGE(STATUS "finding: ${_dep}")
+  find_dependency(${_dep} REQUIRED CONFIG)
+endforeach()
+SET(_dep)
+SET(_deps)
+
+include(${CMAKE_CURRENT_LIST_DIR}/mrpt-@LIB_NAME@-targets.cmake)
